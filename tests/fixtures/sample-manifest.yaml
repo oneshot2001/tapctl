@@ -1,0 +1,31 @@
+apiVersion: tapctl/v1
+kind: MetadataStream
+metadata:
+  name: quick-start-demo
+  site: "My Test Site"
+
+broker:
+  host: 192.168.1.200
+  port: 1883
+  protocol: tcp
+  topic_prefix: "axis/metadata"
+
+defaults:
+  credentials:
+    username: root
+    password: test-password
+
+cameras:
+  - name: front-door
+    ip: 192.168.1.10
+    labels:
+      zone: entrance
+
+data_sources:
+  - name: realtime
+    type: analytics_scene_description
+    topic_suffix: "realtime"
+
+best_snapshot:
+  enabled: true
+  margin: true
