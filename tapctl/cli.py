@@ -13,7 +13,11 @@ import yaml
 from tapctl import __version__
 from tapctl.config import RuntimeContext, TapctlConfig
 from tapctl.discovery.scene_metadata import enrich_with_scene_metadata
-from tapctl.reporting.table import console, generate_manifest_scaffold, render_discovery_table
+from tapctl.reporting.table import (
+    console,
+    generate_manifest_scaffold,
+    render_discovery_table,
+)
 
 
 @click.group()
@@ -68,8 +72,14 @@ def cli(
     required=False,
     help="Comma-separated list of IPs to probe.",
 )
+@click.option(
+    "--scaffold",
+    is_flag=True,
+    default=False,
+    help="Output an apply-ready MetadataStream manifest instead of SiteInventory.",
+)
 @click.pass_context
-def discover(ctx: click.Context, cidr: str | None, targets: str | None) -> None:
+def discover(ctx: click.Context, cidr: str | None, targets: str | None, scaffold: bool) -> None:
     """Discover Axis cameras and check Scene Metadata capability.
 
     Scans a network range or specific targets, probes each for Scene Metadata
@@ -81,7 +91,9 @@ def discover(ctx: click.Context, cidr: str | None, targets: str | None) -> None:
 
         tapctl discover --targets 10.0.0.10,10.0.0.11,10.0.0.12
 
-        tapctl discover --range 10.1.1.0/24 -o yaml > manifest-scaffold.yaml
+        tapctl discover --range 10.1.1.0/24 -o yaml
+
+        tapctl discover --range 10.1.1.0/24 --scaffold > manifest.yaml
     """
     if not cidr and not targets:
         console.print("[red]Error:[/red] Provide --range or --targets.")
@@ -92,9 +104,9 @@ def discover(ctx: click.Context, cidr: str | None, targets: str | None) -> None:
 
     devices = asyncio.run(_run_discovery(cidr, targets, cfg))
 
-    if cfg.output == "yaml" and devices:
-        scaffold = generate_manifest_scaffold(devices)
-        click.echo(yaml.dump(scaffold, default_flow_style=False, sort_keys=False))
+    if scaffold and devices:
+        manifest = generate_manifest_scaffold(devices)
+        click.echo(yaml.dump(manifest, default_flow_style=False, sort_keys=False))
     else:
         render_discovery_table(devices, output_format=cfg.output)
 

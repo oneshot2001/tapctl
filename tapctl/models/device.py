@@ -4,18 +4,18 @@ from __future__ import annotations
 
 from axelib.models.device import DeviceInfo as _BaseDeviceInfo
 from axelib.models.device import DeviceType  # noqa: F401
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class SceneMetadataCapability(BaseModel):
     """Scene Metadata capability information for an Axis camera."""
 
     supported: bool = False
-    producers: list[dict[str, object]] = []
-    mqtt_sources: list[str] = []
-    mqtt_state: dict[str, object] = {}
-    best_snapshot: dict[str, object] = {}
-    active_publishers: list[dict[str, object]] = []
+    producers: list[dict[str, object]] = Field(default_factory=list)
+    mqtt_sources: list[str] = Field(default_factory=list)
+    mqtt_state: dict[str, object] = Field(default_factory=dict)
+    best_snapshot: dict[str, object] = Field(default_factory=dict)
+    active_publishers: list[dict[str, object]] = Field(default_factory=list)
 
 
 class TapctlDeviceInfo(_BaseDeviceInfo):

@@ -23,7 +23,7 @@ def _make_mock_client(
     client.ip = "10.0.0.1"
 
     async def mock_post(path: str, data: str | None = None) -> dict:  # type: ignore[type-arg]
-        if "listProducers" in path:
+        if "analyticsmetadataconfig" in path:
             return producers_response or {"data": {"producers": []}}
         if "mqtt/client" in path:
             return mqtt_state_response or {"data": {}}
@@ -31,11 +31,11 @@ def _make_mock_client(
 
     async def mock_get(path: str, params: dict | None = None) -> dict:  # type: ignore[type-arg]
         if "data_sources" in path:
-            return mqtt_sources_response or {"data_sources": []}
+            return mqtt_sources_response or {"data": {"data_sources": []}}
         if "best-snapshot" in path:
-            return best_snapshot_response or {}
+            return best_snapshot_response or {"data": {}}
         if "publishers" in path:
-            return publishers_response or {"publishers": []}
+            return publishers_response or {"data": {"publishers": []}}
         return {}
 
     client.post = mock_post
@@ -69,13 +69,15 @@ class TestCheckSceneMetadata:
                 }
             },
             mqtt_sources_response={
-                "data_sources": [
-                    {"id": "com.axis.analytics_scene_description.v0.beta#1"},
-                ]
+                "data": {
+                    "data_sources": [
+                        {"key": "com.axis.analytics_scene_description.v0.beta#1"},
+                    ]
+                }
             },
             mqtt_state_response={"data": {"status": "connected", "server": "10.0.0.200"}},
-            best_snapshot_response={"enabled": True, "margin": True},
-            publishers_response={"publishers": [{"id": "pub1", "active": True}]},
+            best_snapshot_response={"data": {"enabled": True, "margin": True}},
+            publishers_response={"data": {"publishers": [{"id": "pub1", "active": True}]}},
         )
         cap = await check_scene_metadata(client)
         assert cap.supported is True

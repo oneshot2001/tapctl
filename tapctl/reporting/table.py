@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
 
 import yaml
@@ -13,6 +14,50 @@ if TYPE_CHECKING:
     from tapctl.models.device import TapctlDeviceInfo
 
 console = Console()
+
+
+def generate_site_inventory(devices: list[TapctlDeviceInfo]) -> dict[str, Any]:
+    """Generate a SiteInventory document per spec section 5.3.
+
+    Args:
+        devices: List of TapctlDeviceInfo objects from discovery.
+
+    Returns:
+        Dict suitable for YAML serialization as a tapctl SiteInventory.
+    """
+    sm_count = sum(1 for d in devices if d.sm_supported)
+    cameras: list[dict[str, Any]] = []
+    for d in devices:
+        sm = d.scene_metadata
+        cam: dict[str, Any] = {
+            "ip": d.ip,
+            "model": d.model,
+            "serial": d.serial or "",
+            "firmware": d.firmware or "",
+            "soc": d.soc or "",
+            "scene_metadata": {
+                "supported": sm.supported,
+                "producers": list(sm.producers),
+                "mqtt_sources": list(sm.mqtt_sources),
+                "best_snapshot": dict(sm.best_snapshot),
+            },
+            "mqtt": {
+                "state": sm.mqtt_state.get("status", "inactive") if sm.mqtt_state else "inactive",
+                "publishers": list(sm.active_publishers),
+            },
+        }
+        cameras.append(cam)
+
+    return {
+        "apiVersion": "tapctl/v1",
+        "kind": "SiteInventory",
+        "metadata": {
+            "scan_time": datetime.now(tz=UTC).isoformat(),
+            "cameras_found": len(devices),
+            "scene_metadata_capable": sm_count,
+        },
+        "cameras": cameras,
+    }
 
 
 def render_discovery_table(
@@ -31,8 +76,8 @@ def render_discovery_table(
         return
 
     if output_format == "yaml":
-        data = [d.model_dump(mode="json") for d in devices]
-        console.print(yaml.dump(data, default_flow_style=False, sort_keys=False))
+        inventory = generate_site_inventory(devices)
+        console.print(yaml.dump(inventory, default_flow_style=False, sort_keys=False))
         return
 
     # Rich table output

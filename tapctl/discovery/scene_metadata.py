@@ -91,8 +91,8 @@ async def _probe_producers(client: VapixClient) -> list[dict[str, Any]]:
     """Probe listProducers for analytics producers."""
     try:
         resp = await client.post(
-            "/axis-cgi/analytics/listProducers.cgi",
-            data='{"apiVersion": "1.0", "method": "listProducers"}',
+            "/axis-cgi/analyticsmetadataconfig.cgi",
+            data='{"apiVersion": "1.0", "method": "listProducers", "params": {}}',
         )
         producers: list[dict[str, Any]] = resp.get("data", {}).get("producers", [])
         return producers
@@ -111,8 +111,8 @@ async def _probe_mqtt_sources(client: VapixClient) -> list[str]:
         raw = resp.get("raw", "")
         if isinstance(raw, str) and raw.strip():
             return []
-        sources: list[dict[str, Any]] = resp.get("data_sources", [])
-        return [s.get("id", "") for s in sources if s.get("id")]
+        sources: list[dict[str, Any]] = resp.get("data", {}).get("data_sources", [])
+        return [s.get("key", "") for s in sources if s.get("key")]
     except VapixError:
         logger.debug("MQTT data_sources not available on %s", client.ip)
         return []
@@ -142,7 +142,8 @@ async def _probe_best_snapshot(client: VapixClient) -> dict[str, Any]:
     """Get best-snapshot configuration."""
     try:
         resp = await client.get("/config/rest/best-snapshot/v1")
-        return dict(resp)
+        data: dict[str, Any] = resp.get("data", {})
+        return data
     except VapixError:
         logger.debug("best-snapshot not available on %s", client.ip)
         return {}
@@ -155,7 +156,7 @@ async def _probe_publishers(client: VapixClient) -> list[dict[str, Any]]:
     """Get active MQTT publishers."""
     try:
         resp = await client.get("/config/rest/analytics-mqtt/v1beta/publishers")
-        publishers: list[dict[str, Any]] = resp.get("publishers", [])
+        publishers: list[dict[str, Any]] = resp.get("data", {}).get("publishers", [])
         return publishers
     except VapixError:
         logger.debug("MQTT publishers not available on %s", client.ip)
